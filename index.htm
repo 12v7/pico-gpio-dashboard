@@ -1,0 +1,256 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<title>Pico W GPIO Dashboard</title>
+<style>
+body { font-family: Helvetica, sans-serif; }
+#pico_pinout {
+display: grid;
+grid-template-columns: 5ex 6ex 10ex 10ex 6ex 5ex;
+font-size: 18px;
+padding: 3em 3em;
+}
+.lvalue {
+text-align: right;
+padding: 3px 0px;
+cursor:pointer;
+}
+.lmode {
+text-align: center;
+padding: 3px 0px;
+cursor:pointer;
+}
+.lname {
+padding: 3px 5px 3px 8px;
+color: white;
+background-color: #1fa62b;
+border-left: 2px solid yellow;
+}
+.rname {
+padding: 3px 8px;
+text-align: right;
+color: white;
+background-color: #1fa62b;
+border-right: 2px solid yellow;
+}
+.rmode {
+text-align: center;
+padding: 3px 0px;
+cursor:pointer;
+}
+.rvalue {
+cursor:pointer;
+padding: 3px 0px;
+}
+#led {
+border: 2px solid yellow;
+height: 12px;
+width: 20px;
+position: absolute;
+left: 7ex;
+top: 2ex;
+cursor:pointer;
+}
+.led-on {
+background-color: yellow;
+}
+@media (prefers-color-scheme: dark) {
+html {
+color: #ddd;
+background-color: #333;
+}
+.lname,.rname {
+background-color: #006607;
+}
+}
+</style>
+<script>
+
+var pinModes = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
+const modeName = ['OUT', 'IN', 'ADC'];
+
+function getDivs(n) { // Get html objects showing specified pin
+	let pinoutDiv = document.getElementById('pico_pinout');
+	const start = [0, 6, 18, 24, 30, 36, 48, 54, 60, 66, 78, 84, 90, 96, 108, 114,
+		119, 113, 101, 95, 89, 83, 71, 0, 0, 0, 59, 53, 41]
+	if (start[n] != undefined)
+		return {
+			"value": pinoutDiv.children[start[n]],
+			"mode": pinoutDiv.children[start[n] + (n < 16 ? 1 : -1)]
+		};
+}
+
+function chMode(n) { // Change pin mode
+	let divs = getDivs(n);
+	let mode = pinModes[n]
+	mode++;
+	if (mode == 2 && n < 26) // ADC available only for pins 26..28
+		mode++;
+	if (mode >= modeName.length)
+		mode = 0;
+	pinModes[n] = mode;
+	divs.mode.innerText = modeName[mode];
+	divs.value.innerText = '0';
+	fetch(`/setpin?n=${n}&m=${modeName[mode]}&v=0`);
+}
+
+function chValue(n) { // Toggle pin
+	let divs = getDivs(n);
+	if (0 == pinModes[n]) {
+		divs.value.innerText = 1 - divs.value.innerText;
+		fetch(`/setpin?n=${n}&m=OUT&v=${divs.value.innerText}`);
+	}
+}
+
+function toggleLed() { // Toggle LED pin
+	let ledDiv = document.getElementById('led');
+	ledDiv.classList.toggle('led-on')
+	fetch(`/setpin?n=LED&m=OUT&v=${+ledDiv.classList.contains('led-on')}`);
+}
+
+function update() { // Request data from PICO and put it into html objects
+	fetch('/status')
+		.then((response) => response.json())
+		.then((data) => {
+			for (let pn in data) {
+				if (pn[0] == 'p') {
+					let divs = getDivs(pn.slice(1));
+					if (divs) {
+						divs.value.innerText = data[pn];
+					}
+				}
+			}
+			document.getElementById('vbus').innerText = data.vbus;
+			setTimeout(update, 500);
+		});
+}
+
+window.onload = update;
+
+</script>
+</head>
+<body>
+<div id="pico_pinout">
+<div class="lvalue" onclick="chValue(0)">0</div>
+<div class="lmode" onclick="chMode(0)">IN</div>
+<div class="lname">GP0</div>
+<div class="rname">VBUS</div>
+<div></div>
+<div id="vbus"></div>
+<div class="lvalue" onclick="chValue(1)">0</div>
+<div class="lmode" onclick="chMode(1)">IN</div>
+<div class="lname" style="position:relative">GP1<div id="led" onclick="toggleLed()">&nbsp;</div></div>
+<div class="rname">VSYS</div>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+<div class="lname">GND</div>
+<div class="rname">GND</div>
+<div></div>
+<div></div>
+<div class="lvalue" onclick="chValue(2)">0</div>
+<div class="lmode" onclick="chMode(2)">IN</div>
+<div class="lname">GP2</div>
+<div class="rname">3V3_EN</div>
+<div></div>
+<div></div>
+<div class="lvalue" onclick="chValue(3)">0</div>
+<div class="lmode" onclick="chMode(3)">IN</div>
+<div class="lname">GP3</div>
+<div class="rname">3V3</div>
+<div></div>
+<div></div>
+<div class="lvalue" onclick="chValue(4)">0</div>
+<div class="lmode" onclick="chMode(4)">IN</div>
+<div class="lname">GP4</div>
+<div class="rname">AREF</div>
+<div></div>
+<div></div>
+<div class="lvalue" onclick="chValue(5)">0</div>
+<div class="lmode" onclick="chMode(5)">IN</div>
+<div class="lname">GP5</div>
+<div class="rname">GP28_A2</div>
+<div class="rmode" onclick="chMode(28)">IN</div>
+<div class="rvalue" onclick="chValue(28)">0</div>
+<div></div>
+<div></div>
+<div class="lname">GND</div>
+<div class="rname">AGND</div>
+<div></div>
+<div></div>
+<div class="lvalue" onclick="chValue(6)">0</div>
+<div class="lmode" onclick="chMode(6)">IN</div>
+<div class="lname">GP6</div>
+<div class="rname">GP27_A1</div>
+<div class="rmode" onclick="chMode(27)">IN</div>
+<div class="rvalue" onclick="chValue(27)">0</div>
+<div class="lvalue" onclick="chValue(7)">0</div>
+<div class="lmode" onclick="chMode(7)">IN</div>
+<div class="lname">GP7</div>
+<div class="rname">GP26_A0</div>
+<div class="rmode" onclick="chMode(26)">IN</div>
+<div class="rvalue" onclick="chValue(26)">0</div>
+<div class="lvalue" onclick="chValue(8)">0</div>
+<div class="lmode" onclick="chMode(8)">IN</div>
+<div class="lname">GP8</div>
+<div class="rname">RUN</div>
+<div></div>
+<div></div>
+<div class="lvalue" onclick="chValue(9)">0</div>
+<div class="lmode" onclick="chMode(9)">IN</div>
+<div class="lname">GP9</div>
+<div class="rname">GP22</div>
+<div class="rmode" onclick="chMode(22)">IN</div>
+<div class="rvalue" onclick="chValue(22)">0</div>
+<div></div>
+<div></div>
+<div class="lname">GND</div>
+<div class="rname">GND</div>
+<div></div>
+<div></div>
+<div class="lvalue" onclick="chValue(10)">0</div>
+<div class="lmode" onclick="chMode(10)">IN</div>
+<div class="lname">GP10</div>
+<div class="rname">GP21</div>
+<div class="rmode" onclick="chMode(21)">IN</div>
+<div class="rvalue" onclick="chValue(21)">0</div>
+<div class="lvalue" onclick="chValue(11)">0</div>
+<div class="lmode" onclick="chMode(11)">IN</div>
+<div class="lname">GP11</div>
+<div class="rname">GP20</div>
+<div class="rmode" onclick="chMode(20)">IN</div>
+<div class="rvalue" onclick="chValue(20)">0</div>
+<div class="lvalue" onclick="chValue(12)">0</div>
+<div class="lmode" onclick="chMode(12)">IN</div>
+<div class="lname">GP12</div>
+<div class="rname">GP19</div>
+<div class="rmode" onclick="chMode(19)">IN</div>
+<div class="rvalue" onclick="chValue(19)">0</div>
+<div class="lvalue" onclick="chValue(13)">0</div>
+<div class="lmode" onclick="chMode(13)">IN</div>
+<div class="lname">GP13</div>
+<div class="rname">GP18</div>
+<div class="rmode" onclick="chMode(18)">IN</div>
+<div class="rvalue" onclick="chValue(18)">0</div>
+<div></div>
+<div></div>
+<div class="lname">GND</div>
+<div class="rname">GND</div>
+<div></div>
+<div></div>
+<div class="lvalue" onclick="chValue(14)">0</div>
+<div class="lmode" onclick="chMode(14)">IN</div>
+<div class="lname">GP14</div>
+<div class="rname">GP17</div>
+<div class="rmode" onclick="chMode(17)">IN</div>
+<div class="rvalue" onclick="chValue(17)">0</div>
+<div class="lvalue" onclick="chValue(15)">0</div>
+<div class="lmode" onclick="chMode(15)">IN</div>
+<div class="lname">GP15</div>
+<div class="rname">GP16</div>
+<div class="rmode" onclick="chMode(16)">IN</div>
+<div class="rvalue" onclick="chValue(16)">0</div>
+</div>
+</body>
+</html>
